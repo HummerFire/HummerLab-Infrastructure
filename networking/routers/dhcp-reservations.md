@@ -1,0 +1,24 @@
+## 🦴 Tabla de Direccionamiento IP: Segmento 10.0.1.x/24
+
+| Rango IP | Dispositivo / Servicio | FQDN | Función |
+| :--- | :--- | :--- | :--- |
+|.1	| OPNsense Virtual IP |	gateway.naucy.xyz |	Puerta de enlace (CARP VIP) |
+|.2	| H00 (Master) |	h00.naucy.xyz |	Firewall Principal |
+|.3	| H01 (Backup) |	h01.naucy.xyz |	Firewall Secundario |
+|.5	| H02 (PiHole/Unbound) |	dns.naucy.xyz |	DNS Local y Bloqueo |
+|--	--- GESTIÓN FÍSICA ---	---	---
+|.11 |	N01 (Talos Master 1) |	n01.naucy.xyz |	Control Plane K8s |
+|.12 |	N02 (Talos Master 2) |	n02.naucy.xyz |	Control Plane K8s |
+|.13 |	N03 (Talos Worker 1) |	n03.naucy.xyz |	Inferencia IA (Ollama) |
+|.14 |	N04 (Talos Worker 2) |	n04.naucy.xyz |	RAG Engine / Vectores |
+|.15 |	N05 (Proxmox 1) |	n05.naucy.xyz |	Infraestructura Crítica |
+|.16 |	N06 (Proxmox 2) |	n06.naucy.xyz |	Infraestructura Crítica |
+|.17 |	N07 (Debian 12) |	n07.naucy.xyz |	Monitoreo + QDevice |
+|.18 |	N08 (Debian/PBS) |	n08.naucy.xyz |	Backup Server (PBS) |
+|--	--- SERVICIOS VIRTUALES (VIPs) ---	---	---
+|.50 | 	Omni Manager VIP |	omni.naucy.xyz |	Gestión de Talos (Local) |
+|.60 |	K8s API VIP |	k8s.naucy.xyz |	Punto de entrada Kubernetes |
+|.100 |	PostgreSQL Cluster VIP |	db.naucy.xyz |	Base de Datos (Patroni) |
+|.110 |	Qdrant Cluster VIP |	vector.naucy.xyz |	Base de Datos Vectorial |
+|.120 |	Home Assistant VIP |	ha.naucy.xyz |	Domótica (MCP) |
+|.200 |	HAProxy / Ingress |	lab.naucy.xyz |	Entrada Web (Open WebUI) |
