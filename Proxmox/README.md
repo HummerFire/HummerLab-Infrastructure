@@ -30,11 +30,11 @@ En este clúster residen las máquinas virtuales (VMs) y contenedores (LXCs) que
 
 1. [ ]    Instalación de PVE en N05 y N06.
 2. [ ]    Creación del clúster:
-3. [ ]    pvecm create HummerCluster
-4. [ ]    Unión de nodos:
+   pvecm create HummerCluster
+3. [ ]    Unión de nodos:
    pvecm add [IP-N05]
-5. [ ]    Configuración del QDevice en N07:
+4. [ ]    Configuración del QDevice en N07:
    pvecm qdevice setup 10.0.1.17
-6. [ ]    Configuración de Storage NFS/Shared para el repositorio de ISOS y Backups.
+5. [ ]    Configuración de Storage NFS/Shared para el repositorio de ISOS y Backups.
 
 **Este segmento es parte del proyecto HummerLab, una iniciativa para democratizar infraestructuras de IA soberanas y domótica avanzada.**
