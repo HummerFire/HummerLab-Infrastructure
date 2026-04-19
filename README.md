@@ -1,2 +1,2 @@
-# homelab
+# HummerLab
 Colaborativo, control total, minimalista
