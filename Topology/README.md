@@ -2,7 +2,7 @@
 
 Este documento detalla la arquitectura de red del **HummerLab**, un ecosistema diseñado para la alta disponibilidad (HA), la soberanía de datos y el cómputo de Inteligencia Artificial. La red se organiza en una topología de estrella con un núcleo de red central y capas de servicios especializados.
 
-## 🗺️ Mapa de Red (Visualización)
+## 🗺️ Mapa de Red ([Visualización](https://mermaid.ai/d/232fba26-2a5b-41c8-be71-ae3e3bbfff9c))
 
 ```mermaid
 flowchart TB
