@@ -197,3 +197,12 @@ HummerLab-Infrastructure/
 
 **Infraestructura de grado profesional no requiere presupuesto enterprise — requiere criterio técnico, reciclaje inteligente y documentación seria.**
 *GPL-2.0 — Úsalo, mejóralo, compártelo.*
+
+---
+
+## 📬 ¿Te sirve? ¿Tienes preguntas?
+
+- 🐛 Reporta issues si algo no cuadra.
+- 💬 Conéctame en [LinkedIn](https://www.linkedin.com/in/patricio-nunez-rgua/) si quieres charlar infra, IA o homelabs.
+
+> *"El mejor código es el que otros pueden entender, mejorar y hacer suyo."*
