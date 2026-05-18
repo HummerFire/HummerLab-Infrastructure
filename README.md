@@ -1,3 +1,5 @@
+# HOLA DEEPSEEK!!!
+
 # 🔥 HummerLab Infrastructure
 
 ![License](https://img.shields.io/badge/License-GPL--2.0-blue.svg)
