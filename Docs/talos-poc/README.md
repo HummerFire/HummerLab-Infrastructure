@@ -37,7 +37,7 @@ Esta POC se centra exclusivamente en validar **Talos Linux como sistema operativ
 
 Para el detalle paso a paso de cada componente, consultar los archivos en esta misma carpeta:
 
-- [`talos-cluster-setup.md`](./talos-cluster-setup.md)
+- [`Talos-cluster-setup.md`](./Talos-cluster-setup.md)
 - [`metallb-test.md`](./metallb-test.md)
 - [`monitoring-test.md`](./monitoring-test.md)
 
