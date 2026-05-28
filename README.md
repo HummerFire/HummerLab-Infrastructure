@@ -35,51 +35,84 @@ Construido íntegramente con hardware reciclado sobre un rack de 32U, este labor
 ## 🌐 Topología del Sistema
 
 ```mermaid
+%%{init: {"flowchart": {"layout": "elk"}} }%%
 flowchart TB
- subgraph WAN["🌐 ISP — Entel"]
-        ISP["192.168.100.1"]
+  %% clases
+  classDef wan stroke:#2dd4bf,fill:#f0fdfa
+  classDef gw stroke:#818cf8,fill:#eef2ff,stroke-width:3px
+  classDef dns stroke:#a78bfa,fill:#f5f3ff
+  classDef ai stroke:#4ade80,fill:#f0fdf4
+  classDef pve stroke:#22d3ee,fill:#ecfeff,stroke-width:3px
+  classDef mgmt stroke:#fb923c,fill:#fff7ed
+  classDef net stroke:#facc15,fill:#fefce8
+  classDef redundant stroke:#fb7185,fill:#fff1f2,stroke-dasharray:5 3
+  classDef legend stroke:#cbd5e1,fill:#f8fafc,stroke-dasharray:2 2
+
+  %% redes
+  subgraph WAN["🌐 WAN — Entel"]
+    ISP["ISP Gateway<br>192.168.100.1"]:::wan
   end
- subgraph GW["📡 Gateway HA — OPNsense 26.1.2"]
-    direction LR
-        H00["H00 Master\n10.0.1.1"]
-        H01["H01 Backup\n10.0.1.2"]
-        SYNC["Sync\n172.16.0.0/30"]
-        CARPVIP["CARP VIP\n10.0.1.220"]
+
+  subgraph LAN["🖧 LAN — 10.0.1.0/24"]
+    subgraph GW["📡 Gateway HA — OPNsense 26.1.2"]
+      direction LR
+      H00["H00 Master<br>10.0.1.1"]:::gw
+      H01["H01 Backup<br>10.0.1.2"]:::gw
+      SYNC["Sync<br>172.16.0.0/30"]:::net
+      CARPVIP["CARP VIP<br>10.0.1.220"]:::redundant
+    end
+
+    subgraph DNS["🌐 DNS"]
+      H02["H02 Armbian SBC<br>PiHole + Unbound<br>10.0.1.3"]:::dns
+    end
+
+    subgraph AI["🤖 AI Cluster — Talos OS + K8s"]
+      direction LR
+      N01["N01 CP1<br>10.0.1.10<br>BMC: 10.99.0.10<br>etcd + API Server"]:::ai
+      N02["N02 CP2<br>10.0.1.20<br>BMC: 10.99.0.20<br>etcd Replica"]:::ai
+      N03["N03 Worker<br>10.0.1.30<br>BMC: 10.99.0.30"]:::ai
+      N04["N04 Worker<br>10.0.1.40<br>BMC: 10.99.0.40"]:::ai
+    end
+
+    subgraph PVE["🖥️ Proxmox HA Cluster"]
+      direction LR
+      N05["N05<br>10.0.1.50<br>BMC: 10.99.0.50"]:::pve
+      N06["N06<br>10.0.1.60<br>BMC: 10.99.0.60"]:::pve
+    end
+
+    subgraph MGMT["🛠️ Management"]
+      N07["N07 Monitoring<br>+ Unbound 2°<br>10.0.1.70"]:::mgmt
+      N08["N08 PBS<br>Backup Server<br>10.0.1.80"]:::mgmt
+      IRIS["IRIS IdeaPad 3<br>Win10 MGMT<br>WiFi: 192.168.1.100"]:::mgmt
+    end
+
+    SW["🔌 Switch Core"]:::net
   end
- subgraph DNS["🌐 DNS"]
-        H02["H02 Armbian SBC\nPiHole + Unbound\n10.0.1.3"]
+
+  subgraph LAB["🔥 HummerLab — rack 32U — naucy.xyz"]
+    WAN
+    LAN
   end
- subgraph AI["🤖 AI Cluster — Talos OS + K8s"]
-    direction LR
-        N01["N01 CP1\n10.0.1.10\nBMC: 10.99.0.10"]
-        N02["N02 CP2\n10.0.1.20\nBMC: 10.99.0.20"]
-        N03["N03 Worker\n10.0.1.30\nBMC: 10.99.0.30"]
-        N04["N04 Worker\n10.0.1.40\nBMC: 10.99.0.40"]
+
+  %% conexiones principales (IRIS ya no conecta directamente a CARPVIP)
+  ISP -->|WAN link| H00
+  ISP --> H01
+  H00 & H01 --- CARPVIP
+  CARPVIP -->|LAN uplink| SW
+  SW --- H02 & AI & PVE & MGMT
+  H00 -.SYNC (HA Sync).- H01
+
+  %% leyenda
+  subgraph LEG["leyenda"]
+    direction TB
+    L1["⬜ Línea sólida = enlace físico"]:::legend
+    L2["⬜ Línea punteada = enlace lógico o de gestión"]:::legend
+    L3["⬜ Borde más grueso = nodo redundante / HA"]:::legend
+    L4["⬜ Borde punteado = IP virtual compartida (VIP)"]:::legend
+    L5["📌 Las IPs BMC (10.99.0.x) están en una red de gestión separada"]:::legend
   end
- subgraph PVE["🖥️ Proxmox HA Cluster"]
-    direction LR
-        N05["N05\n10.0.1.50\nBMC: 10.99.0.50"]
-        N06["N06\n10.0.1.60\nBMC: 10.99.0.60"]
-  end
- subgraph MGMT["🛠️ Management"]
-        N07["N07 Monitoring\n+ Unbound 2°\n10.0.1.70"]
-        N08["N08 PBS\n10.0.1.80"]
-        IRIS["IRIS IdeaPad 3\nWin10 MGMT\nWiFi: 192.168.1.100"]
-  end
- subgraph LAB["🔥 HummerLab — rack 32U — naucy.xyz"]
-        WAN
-        GW
-        SW["🔌 Switch Core"]
-        DNS
-        AI
-        PVE
-        MGMT
-  end
-    ISP --> H00 & H01
-    H00 --- SYNC --- H01
-    H00 & H01 --- CARPVIP
-    CARPVIP --> SW
-    SW --- H02 & AI & PVE & MGMT
+
+  LAB -->| | LEG
 ```
 
 ---
