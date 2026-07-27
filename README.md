@@ -37,82 +37,176 @@ Construido íntegramente con hardware reciclado sobre un rack de 32U, este labor
 ```mermaid
 %%{init: {"flowchart": {"layout": "elk"}} }%%
 flowchart TB
-  %% clases
-  classDef wan stroke:#2dd4bf,fill:#f0fdfa
-  classDef gw stroke:#818cf8,fill:#eef2ff,stroke-width:3px
-  classDef dns stroke:#a78bfa,fill:#f5f3ff
-  classDef ai stroke:#4ade80,fill:#f0fdf4
-  classDef pve stroke:#22d3ee,fill:#ecfeff,stroke-width:3px
-  classDef mgmt stroke:#fb923c,fill:#fff7ed
-  classDef net stroke:#facc15,fill:#fefce8
-  classDef redundant stroke:#fb7185,fill:#fff1f2,stroke-dasharray:5 3
-  classDef legend stroke:#cbd5e1,fill:#f8fafc,stroke-dasharray:2 2
+    %% ============================================================
+    %% CLASES Y ESTILOS
+    %% ============================================================
+    classDef wan stroke:#2dd4bf,fill:#f0fdfa
+    classDef gw stroke:#818cf8,fill:#eef2ff,stroke-width:3px
+    classDef dns stroke:#a78bfa,fill:#f5f3ff
+    classDef ai stroke:#4ade80,fill:#f0fdf4
+    classDef pve stroke:#22d3ee,fill:#ecfeff,stroke-width:3px
+    classDef mgmt stroke:#fb923c,fill:#fff7ed
+    classDef net stroke:#facc15,fill:#fefce8
+    classDef redundant stroke:#fb7185,fill:#fff1f2,stroke-dasharray:5 3
+    classDef vpn stroke:#34d399,fill:#ecfdf5,stroke-width:2px
+    classDef cloud stroke:#60a5fa,fill:#eff6ff
+    classDef isp stroke:#f97316,fill:#fff7ed,stroke-width:2px
+    classDef legend stroke:#cbd5e1,fill:#f8fafc,stroke-dasharray:2 2
 
-  %% redes
-  subgraph WAN["🌐 WAN — Entel"]
-    ISP["ISP Gateway<br>192.168.100.1"]:::wan
-  end
-
-  subgraph LAN["🖧 LAN — 10.0.1.0/24"]
-    subgraph GW["📡 Gateway HA — OPNsense 26.1.2"]
-      direction LR
-      H00["H00 Master<br>10.0.1.1"]:::gw
-      H01["H01 Backup<br>10.0.1.2"]:::gw
-      SYNC["Sync<br>172.16.0.0/30"]:::net
-      CARPVIP["CARP VIP<br>10.0.1.220"]:::redundant
+    %% ============================================================
+    %% 1. INTERNET — DOS ISP
+    %% ============================================================
+    subgraph INTERNET["🌍 Internet — Dual ISP"]
+        direction LR
+        ISP1[("Entel<br>Fibra Óptica")]:::isp
+        ISP2[("Movistar<br>Fibra Óptica")]:::isp
+        INTERNET_GLOBAL(((Internet))):::wan
+        INTERNET_GLOBAL --> ISP1
+        INTERNET_GLOBAL --> ISP2
     end
 
-    subgraph DNS["🌐 DNS"]
-      H02["H02 Armbian SBC<br>PiHole + Unbound<br>10.0.1.3"]:::dns
+    %% ============================================================
+    %% 2. NUBE PÚBLICA — VPS HA (WireGuard)
+    %% ============================================================
+    subgraph CLOUD["☁️ Nube Pública — VPS HA"]
+        direction LR
+        VPS1["VPS001<br>Web + Mail + DNS + VPN"]:::cloud
+        VPS2["VPS002<br>DNS secundario + VPN backup + MX"]:::cloud
+        VIP_CLOUD{{"VIP Pública<br>(WireGuard Endpoint)"}}:::redundant
+        VPS1 <-->|"Sync / Heartbeat"| VPS2
     end
 
-    subgraph AI["🤖 AI Cluster — Talos OS + K8s"]
-      direction LR
-      N01["N01 CP1<br>10.0.1.10<br>BMC: 10.99.0.10<br>etcd + API Server"]:::ai
-      N02["N02 CP2<br>10.0.1.20<br>BMC: 10.99.0.20<br>etcd Replica"]:::ai
-      N03["N03 Worker<br>10.0.1.30<br>BMC: 10.99.0.30"]:::ai
-      N04["N04 Worker<br>10.0.1.40<br>BMC: 10.99.0.40"]:::ai
+    %% ============================================================
+    %% 3. HOMELAB — HummerLab
+    %% ============================================================
+    subgraph LAB["🏠 HummerLab — Rack 32U — naucy.xyz"]
+        direction TB
+
+        %% ============================================================
+        %% 3a. CLUSTER VPN (Pacemaker/PCS)
+        %% ============================================================
+        subgraph VPN_CLUSTER["🔒 Cluster VPN (Pacemaker/PCS)"]
+            direction LR
+            VPN1["VM VPN 1<br>Terminación WG"]:::vpn
+            VPN2["VM VPN 2<br>Terminación WG (Backup)"]:::vpn
+            VIP_VPN{{"VIP VPN<br>(WireGuard Termination)"}}:::redundant
+            VPN1 <-->|"Corosync / Sync"| VPN2
+        end
+
+        %% ============================================================
+        %% 3b. FIREWALL OPNsense HA (CARP) — Dual WAN via VLANs
+        %% ============================================================
+        subgraph GW["Gateway HA — OPNsense 26.1.2"]
+            direction LR
+            H00["H00 Master<br>10.0.1.1<br>WAN: eth0 (VLAN 100/200)<br>LAN: eth1<br>Sync: eth2"]:::gw
+            H01["H01 Backup<br>10.0.1.2<br>WAN: eth0 (VLAN 100/200)<br>LAN: eth1<br>Sync: eth2"]:::gw
+            SYNC["Sync Network<br>172.16.0.0/30"]:::net
+            CARPVIP{{"CARP VIP<br>10.0.1.220"}}:::redundant
+
+            H00 <-->|"pfsync / CARP"| H01
+            H00 --- SYNC
+            H01 --- SYNC
+        end
+
+        %% ============================================================
+        %% 3c. INFRAESTRUCTURA INTERNA
+        %% ============================================================
+        subgraph DNS["DNS"]
+            H02["H02 Armbian SBC<br>PiHole + Unbound<br>10.0.1.3"]:::dns
+        end
+
+        subgraph AI["AI Cluster — Talos OS + K8s"]
+            direction LR
+            N01["N01 CP1<br>10.0.1.10"]:::ai
+            N02["N02 CP2<br>10.0.1.20"]:::ai
+            N03["N03 Worker<br>10.0.1.30"]:::ai
+            N04["N04 Worker<br>10.0.1.40"]:::ai
+        end
+
+        subgraph PVE["Proxmox HA Cluster"]
+            direction LR
+            N05["N05<br>10.0.1.50"]:::pve
+            N06["N06<br>10.0.1.60"]:::pve
+        end
+
+        subgraph MGMT["Management"]
+            N07["N07 Monitoring + QDevice + DNS 2°<br>10.0.1.70"]:::mgmt
+            N08["N08 PBS Backup<br>10.0.1.80"]:::mgmt
+            IRIS["IRIS IdeaPad 3<br>Win10 MGMT<br>WiFi: 192.168.1.100"]:::mgmt
+        end
+
+        SWITCH["Switch Core<br>(VLAN aware)"]:::net
+        BMC_NET["BMC/IPMI Network<br>10.99.0.0/24"]:::net
+
+        %% ============================================================
+        %% 4. CONEXIONES FÍSICAS Y LÓGICAS
+        %% ============================================================
+
+        %% 4a. ISP → OPNsense (Dual WAN sobre VLANs en eth0)
+        ISP1 -->|"VLAN 100"| H00
+        ISP1 -->|"VLAN 100"| H01
+        ISP2 -->|"VLAN 200"| H00
+        ISP2 -->|"VLAN 200"| H01
+
+        %% 4b. Túnel WireGuard (Nube → VPN Cluster)
+        VIP_CLOUD ===|"🔐 Túnel WireGuard<br>(UDP 51820)"| VIP_VPN
+
+        %% 4c. VPN Cluster → Firewall
+        VIP_VPN -->|"Tráfico entrante"| CARPVIP
+        CARPVIP -->|"Anuncio CARP (Activo)"| H00
+        CARPVIP -.->|"Standby"| H01
+
+        %% 4d. Firewall → Switch Core (solo Master activo)
+        H00 -->|"Ruteo + Firewalling"| SWITCH
+        H01 -.->|"Standby"| SWITCH
+
+        %% 4e. Switch → Servicios Internos
+        SWITCH --- H02
+        SWITCH --- AI
+        SWITCH --- PVE
+        SWITCH --- MGMT
+
+        %% 4f. Tráfico de retorno (respuesta)
+        SWITCH -->|"Respuesta"| H00
+        H00 -->|"Respuesta"| CARPVIP
+        CARPVIP -->|"Respuesta"| VIP_VPN
+        VIP_VPN ===|"🔐 Respuesta (WG)"| VIP_CLOUD
+
+        %% 4g. Gestión y monitoreo (SNMP / SSH)
+        N07 -.->|"SNMP / Monitoring"| H00
+        N07 -.->|"SNMP / Monitoring"| H01
+        N07 -.->|"SNMP / Monitoring"| N01
+        N07 -.->|"SNMP / Monitoring"| N02
+        N07 -.->|"SNMP / Monitoring"| N03
+        N07 -.->|"SNMP / Monitoring"| N04
+        N07 -.->|"SNMP / Monitoring"| N05
+        N07 -.->|"SNMP / Monitoring"| N06
+
+        %% 4h. BMC / IPMI (Out-of-band management)
+        N01 --- BMC_NET
+        N02 --- BMC_NET
+        N03 --- BMC_NET
+        N04 --- BMC_NET
+        N05 --- BMC_NET
+        N06 --- BMC_NET
+        IRIS -.->|"IPMI / BMC"| BMC_NET
     end
 
-    subgraph PVE["🖥️ Proxmox HA Cluster"]
-      direction LR
-      N05["N05<br>10.0.1.50<br>BMC: 10.99.0.50"]:::pve
-      N06["N06<br>10.0.1.60<br>BMC: 10.99.0.60"]:::pve
+    %% ============================================================
+    %% 5. LEYENDA
+    %% ============================================================
+    subgraph LEGEND["📘 Leyenda"]
+        direction TB
+        L1["⬜ Línea sólida = enlace físico / datos"]:::legend
+        L2["⬜ Línea punteada = enlace lógico / gestión / standby"]:::legend
+        L3["⬜ Línea gruesa doble = Túnel WireGuard (encriptado)"]:::legend
+        L4["⬜ Borde punteado = IP virtual compartida (VIP)"]:::legend
+        L5["⬜ Borde más grueso = nodo redundante / HA"]:::legend
+        L6["⬜ Línea segmentada con texto = VLAN (trunk)"]:::legend
+        L7["⬜ Las IPs BMC (10.99.0.x) están en red de gestión separada"]:::legend
     end
 
-    subgraph MGMT["🛠️ Management"]
-      N07["N07 Monitoring<br>+ Unbound 2°<br>10.0.1.70"]:::mgmt
-      N08["N08 PBS<br>Backup Server<br>10.0.1.80"]:::mgmt
-      IRIS["IRIS IdeaPad 3<br>Win10 MGMT<br>WiFi: 192.168.1.100"]:::mgmt
-    end
-
-    SW["🔌 Switch Core"]:::net
-  end
-
-  subgraph LAB["🔥 HummerLab — rack 32U — naucy.xyz"]
-    WAN
-    LAN
-  end
-
-  %% conexiones principales (IRIS ya no conecta directamente a CARPVIP)
-  ISP -->|WAN link| H00
-  ISP --> H01
-  H00 & H01 --- CARPVIP
-  CARPVIP -->|LAN uplink| SW
-  SW --- H02 & AI & PVE & MGMT
-  H00 -.SYNC (HA Sync).- H01
-
-  %% leyenda
-  subgraph LEG["leyenda"]
-    direction TB
-    L1["⬜ Línea sólida = enlace físico"]:::legend
-    L2["⬜ Línea punteada = enlace lógico o de gestión"]:::legend
-    L3["⬜ Borde más grueso = nodo redundante / HA"]:::legend
-    L4["⬜ Borde punteado = IP virtual compartida (VIP)"]:::legend
-    L5["📌 Las IPs BMC (10.99.0.x) están en una red de gestión separada"]:::legend
-  end
-
-  LAB -->| | LEG
+    LAB --> LEGEND
 ```
 
 ---
