@@ -70,7 +70,7 @@ flowchart TB
     %% ============================================================
     subgraph CLOUD["☁️ Nube Pública — VPS HA"]
         direction LR
-        VPS1["VPS001<br>Web + Mail + DNS + VPN"]:::cloud
+        VPS1["VPS001<br>Web + IREDMAIL + NGINX + WIREGUARD"]:::cloud
         VPS2["VPS002<br>DNS secundario + VPN backup + MX"]:::cloud
         VIP_CLOUD{{"VIP Pública<br>(WireGuard Endpoint)"}}:::redundant
         VPS1 <-->|"Sync / Heartbeat"| VPS2
@@ -79,7 +79,7 @@ flowchart TB
     %% ============================================================
     %% 3. HOMELAB — HummerLab
     %% ============================================================
-    subgraph LAB["🏠 HummerLab — Rack 32U — naucy.xyz"]
+    subgraph LAB["🏠 HummerLab — Selfhost Enviroment — naucy.lol"]
         direction TB
 
         %% ============================================================
@@ -119,19 +119,18 @@ flowchart TB
             direction LR
             N01["N01 CP1<br>10.0.1.10"]:::ai
             N02["N02 CP2<br>10.0.1.20"]:::ai
-            N03["N03 Worker<br>10.0.1.30"]:::ai
-            N04["N04 Worker<br>10.0.1.40"]:::ai
+            N03["N03 CP3<br>10.0.1.30"]:::ai            
         end
 
         subgraph PVE["Proxmox HA Cluster"]
             direction LR
+			N04["N04<br>10.0.1.40"]:::pve
             N05["N05<br>10.0.1.50"]:::pve
             N06["N06<br>10.0.1.60"]:::pve
         end
 
         subgraph MGMT["Management"]
-            N07["N07 Monitoring + QDevice + DNS 2°<br>10.0.1.70"]:::mgmt
-            N08["N08 PBS Backup<br>10.0.1.80"]:::mgmt
+            CANDY["CANDY Monitoring + DNS 2°<br>10.0.1.4"]:::mgmt
             IRIS["IRIS IdeaPad 3<br>Win10 MGMT<br>WiFi: 192.168.1.100"]:::mgmt
         end
 
@@ -173,14 +172,15 @@ flowchart TB
         VIP_VPN ===|"🔐 Respuesta (WG)"| VIP_CLOUD
 
         %% 4g. Gestión y monitoreo (SNMP / SSH)
-        N07 -.->|"SNMP / Monitoring"| H00
-        N07 -.->|"SNMP / Monitoring"| H01
-        N07 -.->|"SNMP / Monitoring"| N01
-        N07 -.->|"SNMP / Monitoring"| N02
-        N07 -.->|"SNMP / Monitoring"| N03
-        N07 -.->|"SNMP / Monitoring"| N04
-        N07 -.->|"SNMP / Monitoring"| N05
-        N07 -.->|"SNMP / Monitoring"| N06
+        CANDY -.->|"SNMP / Monitoring"| H00
+        CANDY -.->|"SNMP / Monitoring"| H01
+		CANDY -.->|"SNMP / Monitoring"| H02
+        CANDY -.->|"SNMP / Monitoring"| N01
+        CANDY -.->|"SNMP / Monitoring"| N02
+        CANDY -.->|"SNMP / Monitoring"| N03
+        CANDY -.->|"SNMP / Monitoring"| N04
+        CANDY -.->|"SNMP / Monitoring"| N05
+        CANDY -.->|"SNMP / Monitoring"| N06
 
         %% 4h. BMC / IPMI (Out-of-band management)
         N01 --- BMC_NET
