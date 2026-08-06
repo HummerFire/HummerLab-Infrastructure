@@ -8,7 +8,7 @@
 ![HomeAssistant](https://img.shields.io/badge/Home_Assistant-MCP-41BDF5?logo=home-assistant&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-In_Progress-yellow)
 
-> Arquitectura self-hosted de grado profesional para IA (RAG), Domótica (MCP) e Infraestructura Crítica. Control total, sin dependencias de nube, sin suscripciones. Construido sobre hardware reciclado en un rack de 32U.
+> Arquitectura self-hosted de grado profesional para IA (RAG), Domótica (MCP) e Infraestructura Crítica. Control total, sin dependencias de nube, sin suscripciones. Construido sobre hardware descontinuado por la "obsolescencia programada".
 
 ---
 
@@ -222,25 +222,25 @@ flowchart TB
 | H02 | DNS / PiHole / Unbound | 2c | 1 GB | 50 GiB | Armbian | 10.0.1.3 | — |
 | N01 | Talos — Control Plane 1 | 8c | 32 GB | 4× 500 GiB | Talos OS | 10.0.1.10 | 10.99.0.10 |
 | N02 | Talos — Control Plane 2 | 8c | 32 GB | 3× 500 GiB + 1 TiB | Talos OS | 10.0.1.20 | 10.99.0.20 |
-| N03 | Talos — Worker IA | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Talos OS | 10.0.1.30 | 10.99.0.30 |
-| N04 | Talos — Worker IA | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Talos OS | 10.0.1.40 | 10.99.0.40 |
-| N05 | Proxmox Node 1 | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Proxmox VE 9 | 10.0.1.50 | 10.99.0.50 |
-| N06 | Proxmox Node 2 | 8c | 32 GB | 2× 320 GiB + 2× 1 TiB | Proxmox VE 9 | 10.0.1.60 | 10.99.0.60 |
-| N07 | Monitoring + QDevice + DNS 2° | 4c | 6 GB | 250 GiB SSD | Debian 12 | 10.0.1.70 | — |
-| N08 | PBS Backup | 2c | 2 GB | 4× SATA + 4× IDE | Debian 12 | 10.0.1.80 | — |
+| N03 | Talos — Control Plane 3 | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Talos OS | 10.0.1.30 | 10.99.0.30 |
+| N04 | Proxmox Node 1 | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Proxmox VE 9 | 10.0.1.40 | 10.99.0.40 |
+| N05 | Proxmox Node 2 | 8c | 32 GB | 2× 500 GiB + 2× 1 TiB | Proxmox VE 9 | 10.0.1.50 | 10.99.0.50 |
+| N06 | Proxmox Node 3 | 8c | 32 GB | 2× 320 GiB + 2× 1 TiB | Proxmox VE 9 | 10.0.1.60 | 10.99.0.60 |
+
 
 ### Fuera de Rack
 
 | Equipo | Rol | CPU | RAM | Storage | OS | IP |
 |--------|-----|-----|-----|---------|----|----|
-| IRIS (IdeaPad 3) | MGMT Personal / Backup | 4c | 20 GB | 500 GiB SSD + 1 TiB | Windows 10 | WiFi 192.168.1.100 |
+| CANDY | Monitoring + DNS  | 4c | 6 GB | 250 GiB SSD | Debian 12 | 10.0.1.4 | — |
+| IRIS | MGMT + Backup | 8c | 20 GB | 1 TiB SSD | Windows 10 | 10.0.1.5 | — |
 
 ### VPS Externos
 
 | Nombre | Rol | CPU | RAM | Storage | OS |
 |--------|-----|-----|-----|---------|-----|
-| VPS001 | Web + Mail + DNS + VPN | 2c | 4 GB | 60 GiB | Ubuntu 24.04 |
-| VPS002 | DNS secundario + VPN backup + MX | 4c | 8 GB | 140 GiB SSD | Ubuntu 24.04 |
+| VPS001 | Web + Mail + DNS + VPN | 2c | 4 GB | 60 GiB | Debian 13 |
+| VPS002 | Web + Mail + DNS + VPN | 2c | 4 GB | 60 GiB | Debian 13 |
 
 ---
 
@@ -250,7 +250,7 @@ flowchart TB
 |------|-----------|-----|
 | **Firewall/Gateway** | OPNsense 26.1.2 HA (CARP) | Entrada redundante, VPN, segmentación |
 | **DNS primario** | PiHole + Unbound (H02 — Armbian SBC) | Filtrado + resolución recursiva |
-| **DNS secundario** | Unbound LXC (N07) | Redundancia ante caída de H02 |
+| **DNS secundario** | Unbound LXC (CANDY) | Redundancia ante caída de H02 |
 | **Compute IA** | Talos OS + Kubernetes | Cómputo inmutable para inferencia LLM |
 | **Orquestación K8s** | Omni — Sidero Labs | Gestión del ciclo de vida Talos |
 | **Inferencia LLM** | Ollama / LocalAI | Modelos locales sin API externa |
@@ -261,8 +261,7 @@ flowchart TB
 | **Cache** | Redis + Sentinel | Cache HA para aplicaciones |
 | **Load Balancer** | HAProxy + Keepalived + PgBouncer | VIPs y balanceo interno |
 | **Domótica** | Home Assistant OS | Controlador MCP — Zigbee/Z-Wave |
-| **Backup** | Proxmox Backup Server (N08) | Deduplicación + recuperación |
-| **Quórum PVE** | Corosync QNetd (N07) | Árbitro externo anti split-brain |
+| **Backup** | TrueNAS (VMs) | Deduplicación + recuperación |
 | **Monitoreo** | VictoriaMetrics + Grafana + Loki | Observabilidad full-stack |
 | **Gestión remota** | BMC/IPMI (10.99.0.x) | Acceso out-of-band a N01–N06 |
 
@@ -270,7 +269,7 @@ flowchart TB
 
 ## 📡 Redes
 
-**Dominio:** `naucy.xyz` | **Subred principal:** `10.0.1.0/24`
+**Dominio:** `naucy.lol` | **Subred principal:** `10.0.1.0/24`
 
 | Red | Subred | Propósito |
 |-----|--------|-----------|
